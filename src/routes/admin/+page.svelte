@@ -1,5 +1,5 @@
 <div class="text-center">
   <h1 class="text-3xl font-bold text-gray-800">
-    Watching Video Page
+    Analyzing Video Page
   </h1>
-</div>
+</div> 
