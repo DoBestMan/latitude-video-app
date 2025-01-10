@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Logo from '$lib/assets/logo.svg';
+  import Logo from '/images/logo.svg';
   
   export let currentPath: string;
   
