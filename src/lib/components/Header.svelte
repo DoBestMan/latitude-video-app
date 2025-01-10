@@ -9,18 +9,18 @@
   ];
 </script>
 
-<header class="flex justify-between items-center px-6 py-4 bg-white shadow-sm">
+<header class="flex justify-between items-center px-8 py-12 bg-black">
   <div class="w-40">
     <img src={Logo} alt="Company Logo" class="w-full" />
   </div>
   
-  <nav class="flex gap-4">
+  <nav class="flex gap-6">
     {#each navItems as {path, label}}
       <a
         href={path}
-        class="px-4 py-2 rounded-md transition-colors {currentPath === path ? 
-          'bg-blue-500 text-white' : 
-          'text-gray-600 hover:bg-gray-100'}"
+        class="px-4 py-2 rounded-md transition-all duration-300 {currentPath === path ? 
+          'bg-[#00A3FF] text-white' : 
+          'text-gray-300 hover:text-[#00A3FF]'}"
       >
         {label}
       </a>

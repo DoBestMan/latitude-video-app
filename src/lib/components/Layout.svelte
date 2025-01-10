@@ -3,9 +3,11 @@
   import { page } from '$app/stores';
 </script>
 
-<div class="min-h-screen bg-gray-50">
-  <Header currentPath={$page.url.pathname} />
-  <main class="container mx-auto px-4 py-8">
-    <slot />
-  </main>
+<div class="min-h-screen bg-black">
+  <div class="max-w-[1600px] mx-auto">
+    <Header currentPath={$page.url.pathname} />
+    <main class="px-8 py-12">
+      <slot />
+    </main>
+  </div>
 </div> 
