@@ -16,7 +16,8 @@
 
   const dispatch = createEventDispatcher();
 
-  // Control handlers
+  $: volumeValue = volume; // Reactive value for the slider
+
   function handlePlay() {
     dispatch('play');
   }
@@ -85,7 +86,7 @@
     <div class="flex items-center gap-4">
       <!-- Volume -->
       <IconButton on:click={handleToggleMute}>
-        {#if isMuted || volume === 0}
+        {#if isMuted || volumeValue === 0}
           <MuteIcon />
         {:else}
           <VolumeIcon />
@@ -96,7 +97,7 @@
         min="0"
         max="1"
         step="0.1"
-        {volume}
+        value={volumeValue}
         on:input={handleVolumeChange}
         class="w-20 accent-primary"
       />

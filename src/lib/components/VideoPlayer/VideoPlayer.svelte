@@ -7,6 +7,7 @@
   let isPlaying = false;
   let volume = 1;
   let isMuted = false;
+  let previousVolume = 1; // Store previous volume level
 
   // Play/Pause
   function togglePlay() {
@@ -27,12 +28,25 @@
   // Volume control
   function toggleMute() {
     isMuted = !isMuted;
+    if (isMuted) {
+      previousVolume = volume;
+      volume = 0;
+    } else {
+      volume = previousVolume;
+    }
+    videoElement.volume = volume;
     videoElement.muted = isMuted;
   }
 
   function updateVolume(value: number) {
     volume = value;
     videoElement.volume = value;
+    if (value === 0) {
+      isMuted = true;
+    } else {
+      isMuted = false;
+      previousVolume = value;
+    }
   }
 
   // Progress bar
