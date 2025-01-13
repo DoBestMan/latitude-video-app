@@ -2,7 +2,12 @@
   import { onMount, onDestroy } from 'svelte';
   import { db } from '$lib/firebase/config';
   import { collection, addDoc } from 'firebase/firestore';
+
   import VideoControls from './VideoControls.svelte';
+  import { Chart } from 'chart.js/auto';
+
+  export let readOnly = false;
+  export let history = [];
 
   let videoElement: HTMLVideoElement;
   let duration = 0;
@@ -12,7 +17,6 @@
   let isMuted = false;
   let previousVolume = 1;
 
-  // Analytics tracking
   let watchData = {
     segments: [],
     currentSegmentStart: 0
@@ -20,16 +24,16 @@
 
   let saveInterval: number | null = null;
 
-  // Start interval when playing
+  let chartCanvas: HTMLCanvasElement;
+  let chart: Chart | null = null;
+
   function startTracking() {
     if (!saveInterval) {
       saveInterval = setInterval(async () => {
         if (isPlaying) {
-          // Save current segment
           saveWatchSegment(watchData.currentSegmentStart, currentTime);
           watchData.currentSegmentStart = currentTime;
-          
-          // Send to DB if we have segments
+
           if (watchData.segments.length > 0) {
             await saveToFirebase();
           }
@@ -38,7 +42,6 @@
     }
   }
 
-  // Clear interval when pausing
   function stopTracking() {
     if (saveInterval) {
       clearInterval(saveInterval);
@@ -46,7 +49,6 @@
     }
   }
 
-  // Play/Pause
   function togglePlay() {
     if (videoElement.paused) {
       videoElement.play();
@@ -58,11 +60,10 @@
       isPlaying = false;
       saveWatchSegment(watchData.currentSegmentStart, currentTime);
       stopTracking();
-      saveToFirebase(); // Save immediately on pause
+      saveToFirebase();
     }
   }
 
-  // Forward/Backward
   function seek(seconds: number) {
     if (isPlaying) {
       saveWatchSegment(watchData.currentSegmentStart, currentTime);
@@ -72,7 +73,6 @@
     watchData.currentSegmentStart = seekTo;
   }
 
-  // Save segment
   function saveWatchSegment(start: number, end: number) {
     if (end > start) {
       watchData.segments.push({
@@ -84,7 +84,6 @@
     }
   }
 
-  // Save to Firebase
   async function saveToFirebase() {
     if (watchData.segments.length > 0) {
       try {
@@ -93,7 +92,6 @@
           timestamp: new Date().toISOString()
         });
         console.log('Saved to DB with ID: ', docRef.id);
-        console.log('Saved segments: ', watchData.segments);
         watchData.segments = [];
       } catch (error) {
         console.error('Error saving watch segments:', error);
@@ -101,8 +99,44 @@
     }
   }
 
-  // Cleanup on destroy
+  $: if (chartCanvas && heatmapData.length > 0 && readOnly) {
+    if (chart) chart.destroy();
+
+    chart = new Chart(chartCanvas, {
+      type: 'line',
+      data: {
+        labels: heatmapData.map((_, i) => i),
+        datasets: [
+          {
+            data: heatmapData,
+            fill: true,
+            borderColor: 'rgba(0, 123, 255, 1)',
+            backgroundColor: 'rgba(0, 123, 255, 0.3)',
+            tension: 0.4,
+            pointRadius: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false },
+        },
+        scales: {
+          x: { display: false },
+          y: { display: false },
+        },
+        animation: false,
+        interaction: { intersect: false },
+        elements: { line: { borderWidth: 2 } },
+      },
+    });
+  }
+
   onDestroy(() => {
+    if (chart) chart.destroy();
     stopTracking();
     if (isPlaying) {
       saveWatchSegment(watchData.currentSegmentStart, currentTime);
@@ -110,7 +144,6 @@
     saveToFirebase();
   });
 
-  // Volume control
   function toggleMute() {
     isMuted = !isMuted;
     if (isMuted) {
@@ -126,20 +159,53 @@
   function updateVolume(value: number) {
     volume = value;
     videoElement.volume = value;
-    if (value === 0) {
-      isMuted = true;
-    } else {
-      isMuted = false;
-      previousVolume = value;
-    }
+    isMuted = value === 0;
+    if (value > 0) previousVolume = value;
   }
 
   function seekToPosition(position: number) {
     videoElement.currentTime = (position / 100) * duration;
   }
+
+  $: heatmapData = readOnly && history && duration ? generateHeatmap(history, duration) : [];
+
+  function generateHeatmap(segments: any[], videoDuration: number) {
+    const viewsPerSecond = new Array(Math.ceil(videoDuration)).fill(0);
+
+    segments.forEach(segment => {
+      const start = Math.floor(segment.startTime);
+      const end = Math.ceil(segment.endTime);
+      for (let i = start; i < end; i++) {
+        if (i < viewsPerSecond.length) {
+          viewsPerSecond[i]++;
+        }
+      }
+    });
+
+    const maxViews = Math.max(...viewsPerSecond, 1);
+    return viewsPerSecond.map(count => count / maxViews);
+  }
 </script>
 
+<style>
+  .heatmap-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    pointer-events: none; /* Allow clicks to pass through the canvas */
+  }
+</style>
+
 <div class="relative bg-background group">
+  {#if readOnly && heatmapData.length > 0}
+    <canvas
+      bind:this={chartCanvas}
+      class="heatmap-canvas"
+    />
+  {/if}
+
   <video
     bind:this={videoElement}
     src="/videos/example.mp4"
@@ -150,7 +216,7 @@
     }}
     on:click={togglePlay}
   />
-  
+
   <div class="absolute bottom-0 left-0 right-0 transition-opacity duration-300 bg-gradient-to-t from-background/80 to-transparent">
     <VideoControls
       {duration}
@@ -165,4 +231,4 @@
       on:seekToPosition={e => seekToPosition(e.detail)}
     />
   </div>
-</div> 
+</div>
