@@ -1,31 +1,34 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { videoStore } from '$lib/stores/videoStore';
+  import { WatchSegmentService } from '$lib/services/firebase';
+  import { VIDEO_CONFIG, CHART_CONFIG } from '$lib/constants';
+  import type { VideoPlayerProps } from '$lib/types';
+  import { createHeatmapChart } from './chart';
   import { db } from "$lib/firebase/config";
   import { collection, addDoc } from "firebase/firestore";
-
   import VideoControls from "./VideoControls.svelte";
   import { Chart } from "chart.js/auto";
 
   export let readOnly = false;
-  export let history = [];
+  export let history: VideoPlayerProps['history'] = [];
 
   let videoElement: HTMLVideoElement;
+  let chartCanvas: HTMLCanvasElement;
+  let chart: Chart | null = null;
   let duration = 0;
   let currentTime = 0;
   let isPlaying = false;
   let volume = 1;
   let isMuted = false;
   let previousVolume = 1;
-
+  let saveInterval: number | null = null;
   let watchData = {
     segments: [],
     currentSegmentStart: 0,
   };
 
-  let saveInterval: number | null = null;
 
-  let chartCanvas: HTMLCanvasElement;
-  let chart: Chart | null = null;
 
   function startTracking() {
     if (!readOnly && !saveInterval) {
