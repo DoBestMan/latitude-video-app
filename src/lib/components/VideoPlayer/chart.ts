@@ -1,5 +1,5 @@
 import type { Chart, ChartConfiguration } from 'chart.js';
-import { CHART_CONFIG } from '$lib/constants';
+import { VIDEO_PLAYER_CONFIG } from '$lib/constants/index';
 
 export function createHeatmapChart(
   canvas: HTMLCanvasElement, 
@@ -13,9 +13,9 @@ export function createHeatmapChart(
       datasets: [{
         data,
         fill: true,
-        borderColor: CHART_CONFIG.BORDER_COLOR,
-        backgroundColor: CHART_CONFIG.BACKGROUND_COLOR,
-        tension: CHART_CONFIG.LINE_TENSION,
+        borderColor: VIDEO_PLAYER_CONFIG.chartConfig.borderColor,
+        backgroundColor: VIDEO_PLAYER_CONFIG.chartConfig.backgroundColor,
+        tension: VIDEO_PLAYER_CONFIG.chartConfig.lineTension,
         pointRadius: 0,
       }],
     },

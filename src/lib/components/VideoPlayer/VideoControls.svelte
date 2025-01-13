@@ -7,6 +7,7 @@
   import BackwardIcon from '$lib/assets/icons/BackwardIcon.svelte';
   import VolumeIcon from '$lib/assets/icons/VolumeIcon.svelte';
   import MuteIcon from '$lib/assets/icons/MuteIcon.svelte';
+  import { VIDEO_CONTROLS_CONFIG } from '$lib/constants/index';
   
   export let duration: number = 0;
   export let currentTime: number = 0;
@@ -17,6 +18,9 @@
   const dispatch = createEventDispatcher();
 
   $: volumeValue = volume; // Reactive value for the slider
+
+  // Add new props for customization
+  export let config = VIDEO_CONTROLS_CONFIG;
 
   function handlePlay() {
     dispatch('play');
@@ -45,7 +49,8 @@
 <div class="px-4 py-3 text-white">
   <!-- Progress bar -->
   <div 
-    class="relative h-1 mb-4 cursor-pointer bg-white/30"
+    class="relative mb-4 cursor-pointer bg-white/30"
+    style="height: {config.progressBarHeight}"
     on:click={handleProgressClick}
   >
     <div 
@@ -67,10 +72,10 @@
       </IconButton>
 
       <!-- Backward/Forward -->
-      <IconButton on:click={() => handleSeek(-10)}>
+      <IconButton on:click={() => handleSeek(config.seekBackwardSeconds)}>
         <BackwardIcon />
       </IconButton>
-      <IconButton on:click={() => handleSeek(10)}>
+      <IconButton on:click={() => handleSeek(config.seekForwardSeconds)}>
         <div class="rotate-180">
           <BackwardIcon />
         </div>
@@ -94,12 +99,13 @@
       </IconButton>
       <input
         type="range"
-        min="0"
-        max="1"
-        step="0.1"
+        min={config.volumeMin}
+        max={config.volumeMax}
+        step={config.volumeStep}
         value={volumeValue}
         on:input={handleVolumeChange}
-        class="w-20 accent-primary"
+        class="accent-primary"
+        style="width: {config.volumeSliderWidth}"
       />
     </div>
   </div>

@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import { videoStore } from '$lib/stores/videoStore';
   import { WatchSegmentService } from '$lib/services/firebase';
-  import { VIDEO_CONFIG, CHART_CONFIG } from '$lib/constants';
+  import { VIDEO_PLAYER_CONFIG, VIDEO_CONTROLS_CONFIG } from '$lib/constants/index';
   import type { VideoPlayerProps } from '$lib/types';
   import { createHeatmapChart } from './chart';
   import { db } from "$lib/firebase/config";
@@ -10,8 +10,11 @@
   import VideoControls from "./VideoControls.svelte";
   import { Chart } from "chart.js/auto";
 
+  export let config = VIDEO_PLAYER_CONFIG;
+  export let controlsConfig = VIDEO_CONTROLS_CONFIG;
   export let readOnly = false;
   export let history: VideoPlayerProps['history'] = [];
+  export let videoSrc = config.videoPath;
 
   let videoElement: HTMLVideoElement;
   let chartCanvas: HTMLCanvasElement;
@@ -19,16 +22,14 @@
   let duration = 0;
   let currentTime = 0;
   let isPlaying = false;
-  let volume = 1;
+  let volume = config.defaultVolume;
   let isMuted = false;
-  let previousVolume = 1;
+  let previousVolume = config.defaultVolume;
   let saveInterval: number | null = null;
   let watchData = {
     segments: [],
     currentSegmentStart: 0,
   };
-
-
 
   function startTracking() {
     if (!readOnly && !saveInterval) {
@@ -42,7 +43,7 @@
             await saveToFirebase();
           }
         }
-      }, 5000);
+      }, controlsConfig.updateInterval);
     }
   }
 
@@ -128,9 +129,9 @@
           {
             data: heatmapData,
             fill: true,
-            borderColor: "rgba(0, 123, 255, 1)",
-            backgroundColor: "rgba(0, 123, 255, 0.3)",
-            tension: 0.4,
+            borderColor: config.chartConfig.borderColor,
+            backgroundColor: config.chartConfig.backgroundColor,
+            tension: config.chartConfig.lineTension,
             pointRadius: 0,
           },
         ],
@@ -220,7 +221,7 @@
 
   <video
     bind:this={videoElement}
-    src="/videos/example.mp4"
+    src={videoSrc}
     class="w-full aspect-video"
     on:loadedmetadata={() => {
       duration = videoElement.duration; // Set duration on metadata load
@@ -241,6 +242,7 @@
       {isPlaying}
       {volume}
       {isMuted}
+      config={controlsConfig}
       on:play={togglePlay}
       on:seek={(e) => seek(e.detail)}
       on:volumeChange={(e) => updateVolume(e.detail)}
