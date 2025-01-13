@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import { db } from '$lib/firebase/config';
+  import { collection, addDoc } from 'firebase/firestore';
   import VideoControls from './VideoControls.svelte';
 
   let videoElement: HTMLVideoElement;
@@ -7,23 +10,105 @@
   let isPlaying = false;
   let volume = 1;
   let isMuted = false;
-  let previousVolume = 1; // Store previous volume level
+  let previousVolume = 1;
+
+  // Analytics tracking
+  let watchData = {
+    segments: [],
+    currentSegmentStart: 0
+  };
+
+  let saveInterval: number | null = null;
+
+  // Start interval when playing
+  function startTracking() {
+    if (!saveInterval) {
+      saveInterval = setInterval(async () => {
+        if (isPlaying) {
+          // Save current segment
+          saveWatchSegment(watchData.currentSegmentStart, currentTime);
+          watchData.currentSegmentStart = currentTime;
+          
+          // Send to DB if we have segments
+          if (watchData.segments.length > 0) {
+            await saveToFirebase();
+          }
+        }
+      }, 5000);
+    }
+  }
+
+  // Clear interval when pausing
+  function stopTracking() {
+    if (saveInterval) {
+      clearInterval(saveInterval);
+      saveInterval = null;
+    }
+  }
 
   // Play/Pause
   function togglePlay() {
     if (videoElement.paused) {
       videoElement.play();
       isPlaying = true;
+      watchData.currentSegmentStart = currentTime;
+      startTracking();
     } else {
       videoElement.pause();
       isPlaying = false;
+      saveWatchSegment(watchData.currentSegmentStart, currentTime);
+      stopTracking();
+      saveToFirebase(); // Save immediately on pause
     }
   }
 
   // Forward/Backward
   function seek(seconds: number) {
-    videoElement.currentTime = Math.max(0, Math.min(videoElement.currentTime + seconds, duration));
+    if (isPlaying) {
+      saveWatchSegment(watchData.currentSegmentStart, currentTime);
+    }
+    const seekTo = Math.max(0, Math.min(currentTime + seconds, duration));
+    videoElement.currentTime = seekTo;
+    watchData.currentSegmentStart = seekTo;
   }
+
+  // Save segment
+  function saveWatchSegment(start: number, end: number) {
+    if (end > start) {
+      watchData.segments.push({
+        startTime: Math.floor(start),
+        endTime: Math.floor(end),
+        duration: Math.floor(end - start),
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Save to Firebase
+  async function saveToFirebase() {
+    if (watchData.segments.length > 0) {
+      try {
+        const docRef = await addDoc(collection(db, 'watchSegments'), {
+          segments: watchData.segments,
+          timestamp: new Date().toISOString()
+        });
+        console.log('Saved to DB with ID: ', docRef.id);
+        console.log('Saved segments: ', watchData.segments);
+        watchData.segments = [];
+      } catch (error) {
+        console.error('Error saving watch segments:', error);
+      }
+    }
+  }
+
+  // Cleanup on destroy
+  onDestroy(() => {
+    stopTracking();
+    if (isPlaying) {
+      saveWatchSegment(watchData.currentSegmentStart, currentTime);
+    }
+    saveToFirebase();
+  });
 
   // Volume control
   function toggleMute() {
@@ -49,12 +134,6 @@
     }
   }
 
-  // Progress bar
-  function onTimeUpdate() {
-    currentTime = videoElement.currentTime;
-    duration = videoElement.duration;
-  }
-
   function seekToPosition(position: number) {
     videoElement.currentTime = (position / 100) * duration;
   }
@@ -65,7 +144,10 @@
     bind:this={videoElement}
     src="/videos/example.mp4"
     class="w-full aspect-video"
-    on:timeupdate={onTimeUpdate}
+    on:timeupdate={() => {
+      currentTime = videoElement.currentTime;
+      duration = videoElement.duration;
+    }}
     on:click={togglePlay}
   />
   
