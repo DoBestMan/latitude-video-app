@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Logo from '/images/logo.svg';
+  import Logo from '$lib/assets/icons/Logo.svelte';
   
   export let currentPath: string;
   
@@ -10,9 +10,7 @@
 </script>
 
 <header class="flex justify-between items-center px-8 py-12 bg-black">
-  <div class="w-40">
-    <img src={Logo} alt="Company Logo" class="w-full" />
-  </div>
+  <Logo />
   
   <nav class="flex gap-6">
     {#each navItems as {path, label}}
