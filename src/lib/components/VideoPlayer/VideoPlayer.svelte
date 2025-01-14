@@ -35,7 +35,6 @@
     if (!readOnly && !saveInterval) {
       saveInterval = setInterval(async () => {
         if (isPlaying) {
-          console.log(95, watchData.currentSegmentStart, currentTime);
           saveWatchSegment(watchData.currentSegmentStart, currentTime);
           watchData.currentSegmentStart = currentTime;
 
@@ -64,7 +63,6 @@
       videoElement.pause();
       isPlaying = false;
       if (!readOnly) {
-        console.log(666, watchData.currentSegmentStart, currentTime);
         saveWatchSegment(watchData.currentSegmentStart, currentTime);
         stopTracking();
         saveToFirebase();
@@ -73,10 +71,8 @@
   }
 
   function seek(seconds: number) {
-    console.log(100, watchData.currentSegmentStart, currentTime);
 
     if (isPlaying) {
-      console.log(777, watchData.currentSegmentStart, currentTime);
 
       saveWatchSegment(watchData.currentSegmentStart, currentTime);
     }
@@ -102,8 +98,6 @@
           segments: watchData.segments,
           timestamp: new Date().toISOString(),
         });
-        console.log("Saved to DB with array: ", watchData.segments);
-        console.log("Saved to DB with ID: ", docRef.id);
         watchData.segments = [];
       } catch (error) {
         console.error("Error saving watch segments:", error);
@@ -158,7 +152,6 @@
     if (chart) chart.destroy();
     stopTracking();
     if (isPlaying && !readOnly) {
-      console.log(99, watchData.currentSegmentStart, currentTime);
       saveWatchSegment(watchData.currentSegmentStart, currentTime);
       saveToFirebase();
     }
@@ -184,10 +177,8 @@
   }
 
   function seekToPosition(position: number) {
-    console.log(100, watchData.currentSegmentStart, currentTime);
 
     if (isPlaying && !readOnly) {
-      console.log(999, watchData.currentSegmentStart, currentTime, position);
       saveWatchSegment(watchData.currentSegmentStart, currentTime);
       watchData.currentSegmentStart = (position / 100) * duration;
 
@@ -225,7 +216,6 @@
     class="w-full aspect-video"
     on:loadedmetadata={() => {
       duration = videoElement.duration; // Set duration on metadata load
-      console.log("Video duration:", duration);
     }}
     on:timeupdate={() => {
       currentTime = videoElement.currentTime;

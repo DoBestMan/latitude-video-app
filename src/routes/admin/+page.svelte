@@ -10,7 +10,6 @@
     try {
       const querySnapshot = await getDocs(collection(db, 'watchSegments'));
       history = querySnapshot.docs.map(doc => doc.data().segments).flat();
-      console.log(history);
     } catch (error) {
       console.error('Error loading watch data:', error);
     }
